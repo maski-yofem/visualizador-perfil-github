@@ -1,43 +1,30 @@
+import { fetchGitHubUser } from './api.js';
+import { showLoading, showError, renderProfile } from './ui.js';
+
 const inputSearch = document.getElementById('input-search');
 const btnSearch = document.getElementById('btn-search');
-const profileResults = document.querySelector('.profile-results')
-
-const base_url = 'https://api.github.com';
+const profileResults = document.querySelector('.profile-results');
 
 btnSearch.addEventListener('click', async () => {
-    const userName = inputSearch.value;
+    const userName = inputSearch.value.trim();
 
-    if (userName) {
-        profileResults.innerHTML = `<p class="loading">Carregando...</p>`; 
-
-        try{
-
-        const response = await fetch(`${base_url}/users/${userName}`);
-
-        if(!response.ok){
-            alert('Usuário não encontrado. Por favor, verifique o nome de usuário e tente novamente.');
-            profileResults.innerHTML = "";
-            return;
-        }
-
-        const userData = await response.json();
-
-        profileResults.innerHTML = `
-        <div class="profile-card">
-            <img src="${userData.avatar_url}" alt="Avatar de ${userData.name}" class="profile-avatar">
-            <div class="profile-info">
-                <h2>${userData.name}</h2>
-                <p>${userData.bio || 'Não possui bio cadastrada 😥'} </p>
-            </div>
-        </div>`;
-
-        } catch (error){
-            console.error('Erro ao buscar o perfil do usuário:', error);
-            alert('Ocorreu um erro ao buscar o perfil do usuário. Por favor, tente novamente mais tarde.');
-            profileResults.innerHTML = ""; 
-        }
-
-    } else {
+    if (!userName) {
         alert('Por favor, digite um nome de usuário do GitHub.');
+        return;
+    }
+
+    showLoading(profileResults);
+
+    try {
+        const userData = await fetchGitHubUser(userName);
+        renderProfile(profileResults, userData);
+    } catch (error) {
+        console.error('Erro ao buscar o perfil do usuário:', error);
+
+        if (error && error.status === 404) {
+            showError(profileResults, 'Usuário não encontrado. Por favor, verifique o nome de usuário e tente novamente.');
+        } else {
+            showError(profileResults, 'Ocorreu um erro ao buscar o perfil do usuário. Por favor, tente novamente mais tarde.');
+        }
     }
 });
